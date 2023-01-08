@@ -1,13 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Ordering.Application.Contracts.Infrastructure;
 using Ordering.Application.Models;
 using SendGrid;
 using SendGrid.Helpers.Mail;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Json;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Ordering.Infrastructure.Mail
@@ -17,9 +13,9 @@ namespace Ordering.Infrastructure.Mail
         public EmailSettings _emailSettings { get; }
         public ILogger<EmailService> _logger { get; }
 
-        public EmailService(EmailSettings emailSettings, ILogger<EmailService> logger)
+        public EmailService(IOptions<EmailSettings> emailSettings, ILogger<EmailService> logger)
         {
-            _emailSettings = emailSettings;
+            _emailSettings = emailSettings.Value;
             _logger = logger;
         }
 
@@ -37,16 +33,15 @@ namespace Ordering.Infrastructure.Mail
                 Name = _emailSettings.FromName
             };
 
-            var sendGridMessage = MailHelper.CreateSingleEmail(from, to, subject, emailBody, emailBody);       
+            var sendGridMessage = MailHelper.CreateSingleEmail(from, to, subject, emailBody, emailBody);
             var response = await client.SendEmailAsync(sendGridMessage);
 
             _logger.LogInformation("Email sent.");
 
-            if(response.StatusCode == System.Net.HttpStatusCode.Accepted || response.StatusCode == System.Net.HttpStatusCode.OK)
+            if (response.StatusCode == System.Net.HttpStatusCode.Accepted || response.StatusCode == System.Net.HttpStatusCode.OK)
                 return true;
 
-            _logger.LogInformation("Email sending failed.");
-
+            _logger.LogError("Email sending failed.");
             return false;
         }
     }
